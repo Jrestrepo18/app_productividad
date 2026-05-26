@@ -684,6 +684,7 @@ body {
   width: 100%;
   border-radius: var(--radius-2xl);
   overflow: hidden;
+  touch-action: pan-y; /* Permite scroll vertical pero bloquea el horizontal para un swipe perfecto */
 }
 
 .habit-actions-left {
@@ -731,6 +732,7 @@ body {
   align-items: center;
   gap: 16px;
   flex: 1;
+  min-width: 0;
   background: none;
   border: none;
   text-align: left;

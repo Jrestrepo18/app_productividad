@@ -12,6 +12,7 @@ export default function HabitsTab({
   onAddHabit,
   onEditHabit,
   onDeleteHabit,
+  onInstantDeleteHabit,
   onEndDay,
   onShowToast
 }) {
@@ -27,7 +28,7 @@ export default function HabitsTab({
     if (startX == null) return;
     
     const diff = e.touches[0].clientX - startX;
-    if (Math.abs(diff) < window.innerWidth * 0.8) {
+    if (Math.abs(diff) < window.innerWidth * 0.9) {
       setSwipeState(prev => ({ ...prev, [id]: { ...prev[id], offset: diff } }));
     }
   };
@@ -35,7 +36,7 @@ export default function HabitsTab({
   const handleTouchEnd = (e, id, isDone, isFailed) => {
     if (isDone || isFailed) return;
     const offset = swipeState[id]?.offset || 0;
-    const threshold = window.innerWidth * 0.3;
+    const threshold = 70; // 70px es un deslizamiento mucho más fácil para celular
 
     if (offset > threshold) {
       // Swipe Derecha -> Completar
@@ -49,8 +50,12 @@ export default function HabitsTab({
         onShowToast('Acción no permitida', 'Solo puedes completar hábitos del día actual.');
       }
     } else if (offset < -threshold) {
-      // Swipe Izquierda -> Eliminar
-      onDeleteHabit(id);
+      // Swipe Izquierda -> Eliminar instantáneo
+      if (onInstantDeleteHabit) {
+        onInstantDeleteHabit(id);
+      } else {
+        onDeleteHabit(id);
+      }
     }
     setSwipeState(prev => ({ ...prev, [id]: { startX: null, offset: 0 } }));
   };

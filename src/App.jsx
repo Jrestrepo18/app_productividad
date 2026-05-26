@@ -206,6 +206,12 @@ export default function App() {
         const newTotal = firebase.totalPoints + ptsChange;
         firebase.setTotalPoints(newTotal);
         firebase.syncDB({ totalPoints: newTotal });
+        
+        // Mostrar Toast si se completó (no si se desmarcó)
+        if (isNowCompleted) {
+          addToast('Hábito Completado', `¡Excelente! Sumaste +${h.points} puntos.`);
+        }
+        
         return { ...h, completed: isNowCompleted };
       }
       return h;
@@ -216,6 +222,13 @@ export default function App() {
 
   const deleteHabit = (habitId, type) => {
     setHabitToDelete({ id: habitId, type });
+  };
+
+  const instantDeleteHabit = (habitId) => {
+    const newHabits = firebase.habits.filter(h => h.id !== habitId);
+    firebase.setHabits(newHabits);
+    firebase.syncDB({ habits: newHabits });
+    addToast('Hábito Eliminado', 'El hábito fue borrado correctamente.');
   };
 
   const confirmDeleteHabit = () => {
@@ -459,6 +472,7 @@ export default function App() {
               onAddHabit={() => setShowAddHabit(true)}
               onEditHabit={(h) => setEditingHabit({ habit: h, type: 'daily' })}
               onDeleteHabit={(id) => deleteHabit(id, 'daily')}
+              onInstantDeleteHabit={instantDeleteHabit}
               onEndDay={initiateEndDay}
               onShowToast={addToast}
             />

@@ -132,6 +132,22 @@ export function AddHabitModal({ onCreateHabit, onClose }) {
     let assignedPoints = type === 'weekly' ? 60 : 10;
     let assignedDifficulty = 'Medio';
 
+    const assignFallback = () => {
+      const nameLower = name.trim().toLowerCase();
+      if (type === 'weekly') {
+        assignedPoints = 60;
+        assignedDifficulty = 'Medio';
+      } else if (nameLower.includes('agua') || nameLower.includes('cama') || nameLower.includes('dientes')) {
+        assignedPoints = 5; assignedDifficulty = 'Facil';
+      } else if (nameLower.includes('leer') || nameLower.includes('caminar') || nameLower.includes('meditar')) {
+        assignedPoints = 8; assignedDifficulty = 'Facil';
+      } else if (nameLower.includes('gym') || nameLower.includes('entrenar') || nameLower.includes('correr')) {
+        assignedPoints = 15; assignedDifficulty = 'Dificil';
+      } else {
+        assignedPoints = 10; assignedDifficulty = 'Medio';
+      }
+    };
+
     if (GEMINI_API_KEY) {
       try {
         const promptText = `
@@ -162,7 +178,7 @@ IMPORTANTE: No infles los puntos. Sé justo. "Orar 5 minutos" NO vale 20 puntos.
 Responde SOLO con JSON puro: {"dificultad": "...", "puntos": N}
 `;
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -172,6 +188,11 @@ Responde SOLO con JSON puro: {"dificultad": "...", "puntos": N}
             })
           }
         );
+        
+        if (!response.ok) {
+          throw new Error('API request failed');
+        }
+
         const result = await response.json();
         const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
         if (textResponse) {
@@ -180,34 +201,24 @@ Responde SOLO con JSON puro: {"dificultad": "...", "puntos": N}
             const parsed = JSON.parse(cleanedText);
             assignedDifficulty = parsed.dificultad || 'Medio';
             const rawPoints = parsed.puntos || (type === 'weekly' ? 60 : 10);
-            // Clamp points to valid ranges
             if (type === 'weekly') {
               assignedPoints = Math.max(30, Math.min(150, rawPoints));
             } else {
               assignedPoints = Math.max(5, Math.min(20, rawPoints));
             }
           } catch (parseError) {
-            console.error('Error parseando JSON de IA:', parseError, textResponse);
+            console.error('Error parseando JSON de IA:', parseError);
+            assignFallback();
           }
+        } else {
+          assignFallback();
         }
       } catch (error) {
         console.error('Error AI:', error);
+        assignFallback();
       }
     } else {
-      // Fallback sin IA: asignar por nombre básico
-      const nameLower = name.trim().toLowerCase();
-      if (type === 'weekly') {
-        assignedPoints = 60;
-        assignedDifficulty = 'Medio';
-      } else if (nameLower.includes('agua') || nameLower.includes('cama') || nameLower.includes('dientes')) {
-        assignedPoints = 5; assignedDifficulty = 'Facil';
-      } else if (nameLower.includes('leer') || nameLower.includes('caminar') || nameLower.includes('meditar')) {
-        assignedPoints = 8; assignedDifficulty = 'Facil';
-      } else if (nameLower.includes('gym') || nameLower.includes('entrenar') || nameLower.includes('correr')) {
-        assignedPoints = 15; assignedDifficulty = 'Dificil';
-      } else {
-        assignedPoints = 10; assignedDifficulty = 'Medio';
-      }
+      assignFallback();
     }
 
     const newHabit = {
