@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { 
   PenTool, Heart, Target, TrendingUp, CheckCircle2, 
-  BookOpen, CalendarDays, Search 
+  BookOpen, CalendarDays, Search, Play
 } from 'lucide-react';
+import { DailyWizardModal } from '../Modals';
 
 /**
  * Tab de Diario — Check-in diario + bitácora de fallos
@@ -19,6 +20,7 @@ export default function JournalTab({
   const [subTab, setSubTab] = useState('daily');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedLogIdx, setExpandedLogIdx] = useState(null);
+  const [showWizard, setShowWizard] = useState(false);
 
   const toggleLog = (idx) => {
     setExpandedLogIdx(expandedLogIdx === idx ? null : idx);
@@ -64,47 +66,33 @@ export default function JournalTab({
               <p className="daily-completed-text">Has ganado +20 puntos. Tu mente está enfocada.</p>
             </div>
           ) : (
-            <div className="daily-form">
-              <div className="daily-field">
-                <label className="daily-label">
-                  <Heart size={16} className="icon-pink" /> Hoy doy gracias por...
-                </label>
-                <textarea
-                  value={currentDaily.gratitude}
-                  onChange={(e) => setCurrentDaily({ ...currentDaily, gratitude: e.target.value })}
-                  placeholder="Escribe aquí..."
-                  className="daily-textarea"
-                />
+            <div className="daily-form" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }}>
+              <div style={{ background: 'var(--bg-input)', padding: '24px', borderRadius: '50%', marginBottom: '24px' }}>
+                <PenTool size={48} className="icon-purple" />
               </div>
-
-              <div className="daily-field">
-                <label className="daily-label">
-                  <Target size={16} className="icon-blue" /> Mi mayor victoria hoy fue...
-                </label>
-                <textarea
-                  value={currentDaily.victory}
-                  onChange={(e) => setCurrentDaily({ ...currentDaily, victory: e.target.value })}
-                  placeholder="Escribe aquí..."
-                  className="daily-textarea"
-                />
-              </div>
-
-              <div className="daily-field">
-                <label className="daily-label">
-                  <TrendingUp size={16} className="icon-emerald" /> Mañana mejoraré en...
-                </label>
-                <textarea
-                  value={currentDaily.improvement}
-                  onChange={(e) => setCurrentDaily({ ...currentDaily, improvement: e.target.value })}
-                  placeholder="Escribe aquí..."
-                  className="daily-textarea"
-                />
-              </div>
-
-              <button onClick={onSaveDaily} className="daily-save-btn">
-                Guardar Daily (+20 pts)
+              <h3 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '12px' }}>Es hora de tu Daily</h3>
+              <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginBottom: '32px', maxWidth: '300px', lineHeight: '1.5' }}>
+                Toma un respiro. Reflexiona sobre tu día paso a paso sin distracciones.
+              </p>
+              <button 
+                onClick={() => setShowWizard(true)} 
+                className="btn-primary"
+                style={{ width: '100%', padding: '16px', fontSize: '18px', fontWeight: 'bold', borderRadius: '16px', display: 'flex', justifyContent: 'center', gap: '8px' }}
+              >
+                <Play size={20} /> Iniciar Daily
               </button>
             </div>
+          )}
+
+          {showWizard && (
+            <DailyWizardModal 
+              initialData={currentDaily}
+              onSave={(data) => {
+                setCurrentDaily(data);
+                onSaveDaily(data);
+              }}
+              onClose={() => setShowWizard(false)}
+            />
           )}
 
           {/* Historial */}

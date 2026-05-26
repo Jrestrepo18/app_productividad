@@ -120,6 +120,8 @@ export function AddHabitModal({ onCreateHabit, onClose }) {
   const [name, setName] = useState('');
   const [time, setTime] = useState('06:00 AM');
   const [type, setType] = useState('daily');
+  const [frequencyType, setFrequencyType] = useState('recurring');
+  const [specificDate, setSpecificDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [activeDays, setActiveDays] = useState([0, 1, 2, 3, 4, 5, 6]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -183,7 +185,9 @@ export function AddHabitModal({ onCreateHabit, onClose }) {
       name,
       difficulty: assignedDifficulty,
       points: assignedPoints,
-      activeDays: type === 'daily' ? activeDays : [0, 1, 2, 3, 4, 5, 6]
+      activeDays: type === 'daily' && frequencyType === 'recurring' ? activeDays : null,
+      frequencyType: type === 'daily' ? frequencyType : 'recurring',
+      specificDate: type === 'daily' && frequencyType === 'once' ? specificDate : null
     };
 
     onCreateHabit(newHabit, type, time);
@@ -232,9 +236,41 @@ export function AddHabitModal({ onCreateHabit, onClose }) {
         {type === 'daily' && (
           <>
             <div className="modal-field">
-              <label className="modal-label">Días de la semana</label>
-              <DaySelector activeDays={activeDays} onChange={setActiveDays} />
+              <label className="modal-label">Frecuencia</label>
+              <div className="modal-type-selector">
+                <button
+                  onClick={() => setFrequencyType('recurring')}
+                  className={`type-btn ${frequencyType === 'recurring' ? 'type-active' : ''}`}
+                >
+                  Recurrente
+                </button>
+                <button
+                  onClick={() => setFrequencyType('once')}
+                  className={`type-btn ${frequencyType === 'once' ? 'type-active' : ''}`}
+                >
+                  Una sola vez
+                </button>
+              </div>
             </div>
+
+            {frequencyType === 'recurring' ? (
+              <div className="modal-field">
+                <label className="modal-label">Días de la semana</label>
+                <DaySelector activeDays={activeDays} onChange={setActiveDays} />
+              </div>
+            ) : (
+              <div className="modal-field">
+                <label className="modal-label">Fecha Específica</label>
+                <input
+                  type="date"
+                  value={specificDate}
+                  onChange={(e) => setSpecificDate(e.target.value)}
+                  className="modal-input"
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+            )}
+
             <div className="modal-field">
               <label className="modal-label">Hora</label>
               <input
@@ -321,11 +357,13 @@ export function WeeklyEvalModal({ weeklyHabits, onSubmit, onClose }) {
 export function EditHabitModal({ habit, onEditHabit, onClose }) {
   const [name, setName] = useState(habit?.name || '');
   const [time, setTime] = useState(habit?.time || '06:00 AM');
+  const [frequencyType, setFrequencyType] = useState(habit?.frequencyType || 'recurring');
+  const [specificDate, setSpecificDate] = useState(habit?.specificDate || new Date().toISOString().split('T')[0]);
   const [activeDays, setActiveDays] = useState(habit?.activeDays || [0, 1, 2, 3, 4, 5, 6]);
 
   const handleEdit = () => {
     if (!name.trim()) return;
-    onEditHabit(habit.id, name, time, activeDays);
+    onEditHabit(habit.id, name, time, activeDays, frequencyType, specificDate);
     onClose();
   };
 
@@ -348,23 +386,55 @@ export function EditHabitModal({ habit, onEditHabit, onClose }) {
           />
         </div>
 
-        {habit.time && (
+        {habit.frequencyType !== undefined && (
           <>
             <div className="modal-field">
-              <label className="modal-label">Días de la semana</label>
-              <DaySelector activeDays={activeDays} onChange={setActiveDays} />
+              <label className="modal-label">Frecuencia</label>
+              <div className="modal-type-selector">
+                <button
+                  onClick={() => setFrequencyType('recurring')}
+                  className={`type-btn ${frequencyType === 'recurring' ? 'type-active' : ''}`}
+                >
+                  Recurrente
+                </button>
+                <button
+                  onClick={() => setFrequencyType('once')}
+                  className={`type-btn ${frequencyType === 'once' ? 'type-active' : ''}`}
+                >
+                  Una sola vez
+                </button>
+              </div>
             </div>
-            <div className="modal-field">
-              <label className="modal-label">Hora</label>
-              <input
-                type="text"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="modal-input"
-              />
-            </div>
+
+            {frequencyType === 'recurring' ? (
+              <div className="modal-field">
+                <label className="modal-label">Días de la semana</label>
+                <DaySelector activeDays={activeDays} onChange={setActiveDays} />
+              </div>
+            ) : (
+              <div className="modal-field">
+                <label className="modal-label">Fecha Específica</label>
+                <input
+                  type="date"
+                  value={specificDate}
+                  onChange={(e) => setSpecificDate(e.target.value)}
+                  className="modal-input"
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+            )}
           </>
         )}
+
+        <div className="modal-field">
+          <label className="modal-label">Hora (ej. 06:00 AM)</label>
+          <input
+            type="text"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            className="modal-input"
+          />
+        </div>
 
         <button onClick={handleEdit} disabled={!name.trim()} className="modal-submit-btn create">
           Guardar Cambios
@@ -400,6 +470,109 @@ export function ConfirmModal({ title, message, onConfirm, onCancel }) {
           >
             Aceptar
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Modal tipo Wizard para el Daily
+ */
+export function DailyWizardModal({ initialData, onSave, onClose }) {
+  const [step, setStep] = useState(1);
+  const [data, setData] = useState(initialData || { gratitude: '', victory: '', improvement: '' });
+
+  const handleKeyDown = (e, fieldName) => {
+    if (e.key === 'Enter') {
+      const val = data[fieldName];
+      const cursorPosition = e.target.selectionStart;
+      const lines = val.substr(0, cursorPosition).split('\n');
+      const currentLine = lines[lines.length - 1];
+
+      // Check if current line starts with "- "
+      if (currentLine.trim().startsWith('- ')) {
+        e.preventDefault();
+        const insertText = '\n- ';
+        const newVal = val.substring(0, cursorPosition) + insertText + val.substring(e.target.selectionEnd);
+        setData({ ...data, [fieldName]: newVal });
+        
+        // Use timeout to update cursor position after render
+        setTimeout(() => {
+          e.target.selectionStart = e.target.selectionEnd = cursorPosition + insertText.length;
+        }, 0);
+      }
+    }
+  };
+
+  const handleNext = () => setStep(prev => Math.min(prev + 1, 3));
+  const handlePrev = () => setStep(prev => Math.max(prev - 1, 1));
+  
+  const handleSave = () => {
+    if (!data.gratitude || !data.victory || !data.improvement) {
+      alert('Debes llenar los 3 campos para completar tu Daily.');
+      return;
+    }
+    onSave(data);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content fade-in-up" onClick={(e) => e.stopPropagation()} style={{ minHeight: '450px', display: 'flex', flexDirection: 'column' }}>
+        <div className="modal-header" style={{ marginBottom: '12px' }}>
+          <h2 className="modal-title" style={{ fontSize: '24px' }}>
+            {step === 1 && 'Paso 1: Gratitud'}
+            {step === 2 && 'Paso 2: Victoria'}
+            {step === 3 && 'Paso 3: Mejora'}
+          </h2>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '16px', fontWeight: 'bold', background: 'var(--bg-input)', padding: '4px 12px', borderRadius: '16px' }}>{step} / 3</span>
+        </div>
+        
+        <div className="modal-field" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <label className="modal-label" style={{ fontSize: '18px', marginBottom: '16px', color: 'var(--text-primary)' }}>
+            {step === 1 && '❤️ Hoy doy gracias por...'}
+            {step === 2 && '🎯 Mi mayor victoria hoy fue...'}
+            {step === 3 && '📈 Mañana mejoraré en...'}
+          </label>
+          <textarea
+            autoFocus
+            value={step === 1 ? data.gratitude : step === 2 ? data.victory : data.improvement}
+            onChange={(e) => {
+              const field = step === 1 ? 'gratitude' : step === 2 ? 'victory' : 'improvement';
+              setData({ ...data, [field]: e.target.value });
+            }}
+            onKeyDown={(e) => handleKeyDown(e, step === 1 ? 'gratitude' : step === 2 ? 'victory' : 'improvement')}
+            placeholder="Puedes usar guiones para hacer listas:\n- Primera cosa\n- Segunda cosa..."
+            className="modal-textarea"
+            style={{ flex: 1, minHeight: '200px', fontSize: '16px', lineHeight: '1.6' }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+          {step > 1 && (
+            <button 
+              onClick={handlePrev} 
+              style={{ flex: 1, padding: '16px', borderRadius: '12px', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-default)', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              Anterior
+            </button>
+          )}
+          {step < 3 ? (
+            <button 
+              onClick={handleNext} 
+              style={{ flex: step === 1 ? 1 : 2, padding: '16px', borderRadius: '12px', background: 'var(--primary-main)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}
+            >
+              Siguiente
+            </button>
+          ) : (
+            <button 
+              onClick={handleSave} 
+              style={{ flex: 2, padding: '16px', borderRadius: '12px', background: 'var(--accent-emerald)', color: 'black', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}
+            >
+              Finalizar y Guardar
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -115,7 +115,7 @@ export function useFirebaseSync() {
           penaltyJournal: [],
           dailyLogs: [],
           purchaseHistory: [],
-          lastLockDate: todayStr
+          lastLockDate: ''
         };
         syncDB(initialState);
 

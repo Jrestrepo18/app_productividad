@@ -36,7 +36,14 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const notifiedHabitsRef = useRef({});
 
-  const dailyQuote = quotes[(firebase.dayOfMonkMode - 1) % quotes.length];
+  // Quote changes based on the selected date in the calendar
+  const today = new Date();
+  const dayOne = new Date(today);
+  dayOne.setDate(today.getDate() - (firebase.dayOfMonkMode - 1));
+  const diffMs = selectedDate - dayOne;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const quoteIndex = Math.max(0, diffDays) % quotes.length;
+  const dailyQuote = quotes[quoteIndex];
 
   const startMonkMode = () => {
     firebase.setIsMonkModeActive(true);
@@ -121,6 +128,7 @@ export default function App() {
       // Alertas check
       const currentDay = now.getDay();
       const dateString = now.toLocaleDateString('es-ES');
+      const isoToday = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
       
       let [time, modifier] = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).split(' ');
       let [hours, minutes] = time.split(':');
@@ -128,7 +136,10 @@ export default function App() {
       const formattedNow = `${hours}:${minutes} ${modifier.toUpperCase()}`;
 
       firebase.habits.forEach(habit => {
-        const isScheduledToday = !habit.activeDays || habit.activeDays.includes(currentDay);
+        const isScheduledToday = habit.frequencyType === 'once'
+          ? habit.specificDate === isoToday
+          : (!habit.activeDays || habit.activeDays.includes(currentDay));
+        
         if (!isScheduledToday || habit.completed || habit.failed || !habit.time) return;
 
         if (habit.time === formattedNow) {
@@ -142,9 +153,12 @@ export default function App() {
 
       // Penalización matutina
       if (now.getHours() >= 12 && !firebase.morningPenaltyChecked) {
-        const pendingMorning = firebase.habits.filter(
-          h => h.time.includes('AM') && !h.completed && !h.failed && (!h.activeDays || h.activeDays.includes(currentDay))
-        );
+        const pendingMorning = firebase.habits.filter(h => {
+          const isScheduledToday = h.frequencyType === 'once'
+            ? h.specificDate === isoToday
+            : (!h.activeDays || h.activeDays.includes(currentDay));
+          return h.time.includes('AM') && !h.completed && !h.failed && isScheduledToday;
+        });
         if (pendingMorning.length > 0) {
           setFailedHabits(pendingMorning);
           setPenaltyType('morning');
@@ -194,15 +208,16 @@ export default function App() {
     setHabitToDelete(null);
   };
 
-  const saveDailyJournal = () => {
-    if (!currentDaily.gratitude || !currentDaily.victory || !currentDaily.improvement) {
+  const saveDailyJournal = (dailyData) => {
+    const dataToSave = dailyData || currentDaily;
+    if (!dataToSave.gratitude || !dataToSave.victory || !dataToSave.improvement) {
       alert('Debes llenar los 3 campos para completar tu Daily.');
       return;
     }
     const newLogs = [{
       day: firebase.dayOfMonkMode,
       date: new Date().toLocaleDateString('es-ES'),
-      ...currentDaily
+      ...dataToSave
     }, ...firebase.dailyLogs];
 
     const newTotal = firebase.totalPoints + 20;
@@ -301,10 +316,10 @@ export default function App() {
     }
   };
 
-  const handleEditHabitSubmit = (id, newName, newTime, newActiveDays) => {
+  const handleEditHabitSubmit = (id, newName, newTime, newActiveDays, newFrequencyType, newSpecificDate) => {
     if (editingHabit.type === 'daily') {
       const newHabits = firebase.habits.map(h => 
-        h.id === id ? { ...h, name: newName, time: newTime, activeDays: newActiveDays } : h
+        h.id === id ? { ...h, name: newName, time: newTime, activeDays: newActiveDays, frequencyType: newFrequencyType, specificDate: newSpecificDate } : h
       ).sort((a, b) => a.time.localeCompare(b.time));
       firebase.setHabits(newHabits);
       firebase.syncDB({ habits: newHabits });
@@ -401,6 +416,7 @@ export default function App() {
           useOfflineMode={firebase.useOfflineMode}
           selectedDate={selectedDate}
           onSelectDate={setSelectedDate}
+          activeTab={activeTab}
         />
 
         {/* Main Content */}

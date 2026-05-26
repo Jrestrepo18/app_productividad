@@ -55,7 +55,12 @@ export default function HabitsTab({
       </div>
 
       <div className="habits-list">
-        {habits.filter(habit => !habit.activeDays || habit.activeDays.includes(selectedDate.getDay())).map((habit) => {
+        {habits.filter(habit => {
+          const isoSelected = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
+          return habit.frequencyType === 'once'
+            ? habit.specificDate === isoSelected
+            : (!habit.activeDays || habit.activeDays.includes(selectedDate.getDay()));
+        }).map((habit) => {
           const offset = swipeState[habit.id]?.offset || 0;
           const isSwiping = offset > 0;
           const isToday = selectedDate.getDate() === currentDate.getDate() && selectedDate.getMonth() === currentDate.getMonth();

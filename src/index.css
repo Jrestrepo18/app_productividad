@@ -333,13 +333,14 @@ body {
 
 /* === REFLECTION LOCK === */
 .reflection-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background-color: #050505;
-  z-index: 100;
+  background-image: radial-gradient(circle at center, rgba(220, 38, 38, 0.05) 0%, transparent 70%);
+  z-index: 9999;
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 24px;
   overflow: hidden;
   animation: fadeInSoft 0.5s ease;
 }
@@ -357,7 +358,7 @@ body {
 .reflection-icon-wrapper {
   display: flex;
   justify-content: center;
-  margin-bottom: 12px;
+  margin-bottom: 24px;
   position: relative;
 }
 
@@ -379,7 +380,7 @@ body {
 
 .reflection-text-section {
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .reflection-area-badge {
@@ -397,12 +398,12 @@ body {
 }
 
 .reflection-title {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 900;
   color: white;
   letter-spacing: -0.025em;
   line-height: 1.2;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .reflection-divider {
@@ -421,13 +422,14 @@ body {
 }
 
 .reflection-timer-card {
-  background: rgba(24, 24, 27, 0.5);
-  border: 1px solid var(--border-default);
-  padding: 16px;
-  border-radius: var(--radius-xl);
+  background: rgba(24, 24, 27, 0.6);
+  border: 1px solid rgba(220, 38, 38, 0.1);
+  padding: 24px;
+  border-radius: var(--radius-2xl);
   text-align: center;
   backdrop-filter: blur(12px);
   margin-top: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .reflection-timer-label {
@@ -465,6 +467,10 @@ body {
   margin-top: 16px;
   margin-bottom: 8px;
   padding-bottom: env(safe-area-inset-bottom, 0);
+  max-width: 24rem;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 }
 
 .reflection-unlock-btn {
@@ -503,7 +509,7 @@ body {
 
 /* === APP HEADER === */
 .app-header {
-  padding: 48px 24px 24px;
+  padding: 20px 20px 12px;
   background: rgba(9, 9, 11, 0.8);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-subtle);
@@ -516,7 +522,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .header-title {
