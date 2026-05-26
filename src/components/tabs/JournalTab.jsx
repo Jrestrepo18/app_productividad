@@ -15,6 +15,7 @@ export default function JournalTab({
   onSaveDaily,
   dailyLogs,
   penaltyJournal,
+  onShowToast,
   dayOfMonkMode
 }) {
   const [subTab, setSubTab] = useState('daily');
@@ -92,6 +93,7 @@ export default function JournalTab({
                 onSaveDaily(data);
               }}
               onClose={() => setShowWizard(false)}
+              onShowToast={onShowToast}
             />
           )}
 

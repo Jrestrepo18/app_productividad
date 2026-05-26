@@ -12,7 +12,8 @@ export default function HabitsTab({
   onAddHabit,
   onEditHabit,
   onDeleteHabit,
-  onEndDay
+  onEndDay,
+  onShowToast
 }) {
   const [swipeState, setSwipeState] = useState({});
 
@@ -36,10 +37,13 @@ export default function HabitsTab({
     const offset = swipeState[id]?.offset || 0;
     if (offset > window.innerWidth * 0.4) {
       const isToday = selectedDate.getDate() === currentDate.getDate() && selectedDate.getMonth() === currentDate.getMonth();
+      const isPast = selectedDate < new Date(currentDate.setHours(0,0,0,0));
       if (isToday) {
         onToggleHabit(id);
+      } else if (isPast) {
+        onShowToast('Acción no permitida', 'No puedes completar hábitos en el pasado.');
       } else {
-        alert('Solo puedes completar hábitos del día actual.');
+        onShowToast('Acción no permitida', 'Solo puedes completar hábitos del día actual.');
       }
     }
     setSwipeState(prev => ({ ...prev, [id]: { startX: null, offset: 0 } }));
@@ -63,7 +67,7 @@ export default function HabitsTab({
         }).map((habit) => {
           const offset = swipeState[habit.id]?.offset || 0;
           const isSwiping = offset > 0;
-          const isToday = selectedDate.getDate() === currentDate.getDate() && selectedDate.getMonth() === currentDate.getMonth();
+          const isToday = selectedDate.toDateString() === currentDate.toDateString();
           return (
             <div
               key={habit.id}
@@ -82,7 +86,7 @@ export default function HabitsTab({
               className="habit-toggle-area"
               onClick={() => {
                 if (isToday) onToggleHabit(habit.id);
-                else alert('Solo puedes completar hábitos del día actual.');
+                else onShowToast('Acción no permitida', 'Solo puedes completar hábitos del día actual.');
               }}
               disabled={habit.failed}
             >
@@ -129,11 +133,6 @@ export default function HabitsTab({
         <Plus size={20} /> Añadir hábito
       </button>
 
-      <div className="end-day-section">
-        <button onClick={onEndDay} className="end-day-btn">
-          <CheckCircle2 size={20} /> Terminar Día
-        </button>
-      </div>
     </div>
   );
 }

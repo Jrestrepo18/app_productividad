@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertCircle, X, Sparkles, Loader2 } from 'lucide-react';
+import { AlertCircle, X, Sparkles, Loader2, Target, Heart, TrendingUp } from 'lucide-react';
 import { GEMINI_API_KEY } from '@/data/constants';
 
 /**
@@ -479,7 +479,7 @@ export function ConfirmModal({ title, message, onConfirm, onCancel }) {
 /**
  * Modal tipo Wizard para el Daily
  */
-export function DailyWizardModal({ initialData, onSave, onClose }) {
+export function DailyWizardModal({ initialData, onSave, onClose, onShowToast }) {
   const [step, setStep] = useState(1);
   const [data, setData] = useState(initialData || { gratitude: '', victory: '', improvement: '' });
 
@@ -509,8 +509,8 @@ export function DailyWizardModal({ initialData, onSave, onClose }) {
   const handlePrev = () => setStep(prev => Math.max(prev - 1, 1));
   
   const handleSave = () => {
-    if (!data.gratitude || !data.victory || !data.improvement) {
-      alert('Debes llenar los 3 campos para completar tu Daily.');
+    if (!data.gratitude.trim() || !data.victory.trim() || !data.improvement.trim()) {
+      if (onShowToast) onShowToast('Campos incompletos', 'Debes llenar los 3 campos para completar tu Daily.');
       return;
     }
     onSave(data);
@@ -530,10 +530,10 @@ export function DailyWizardModal({ initialData, onSave, onClose }) {
         </div>
         
         <div className="modal-field" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <label className="modal-label" style={{ fontSize: '18px', marginBottom: '16px', color: 'var(--text-primary)' }}>
-            {step === 1 && '❤️ Hoy doy gracias por...'}
-            {step === 2 && '🎯 Mi mayor victoria hoy fue...'}
-            {step === 3 && '📈 Mañana mejoraré en...'}
+          <label className="modal-label" style={{ fontSize: '18px', marginBottom: '16px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {step === 1 && <><Heart size={20} className="icon-pink" /> Hoy doy gracias por...</>}
+            {step === 2 && <><Target size={20} className="icon-blue" /> Mi mayor victoria hoy fue...</>}
+            {step === 3 && <><TrendingUp size={20} className="icon-emerald" /> Mañana mejoraré en...</>}
           </label>
           <textarea
             autoFocus

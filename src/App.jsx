@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useFirebaseSync } from '@/hooks/useFirebaseSync';
-import { Bell } from 'lucide-react';
+import { Bell, Flame } from 'lucide-react';
 import { quotes, rewards, lifeReflections } from '@/data/constants';
 
 // Components
@@ -34,6 +34,8 @@ export default function App() {
   const [habitToDelete, setHabitToDelete] = useState(null);
   const [currentDaily, setCurrentDaily] = useState({ gratitude: '', victory: '', improvement: '' });
   const [toasts, setToasts] = useState([]);
+  const [showStopConfirm, setShowStopConfirm] = useState(false);
+  const [rewardToBuy, setRewardToBuy] = useState(null);
   const notifiedHabitsRef = useRef({});
 
   // Quote changes based on the selected date in the calendar
@@ -50,40 +52,43 @@ export default function App() {
     firebase.syncDB({ isMonkModeActive: true });
   };
 
+  const confirmStopMonkMode = () => {
+    const todayStr = new Date().toLocaleDateString('es-ES');
+    const cleanHabits = firebase.habits.map(h => ({ ...h, completed: false, failed: false }));
+    const cleanWeekly = firebase.weeklyHabits.map(h => ({ ...h, completed: false }));
+    const resetState = {
+      isMonkModeActive: false,
+      dayOfMonkMode: 1,
+      totalPoints: 0,
+      morningPenaltyChecked: false,
+      hasEvaluatedWeekly: false,
+      isDailyCompletedToday: false,
+      habits: cleanHabits,
+      weeklyHabits: cleanWeekly,
+      history: [{ day: 0, points: 0 }],
+      penaltyJournal: [],
+      dailyLogs: [],
+      lastLockDate: todayStr
+    };
+
+    firebase.setIsMonkModeActive(false);
+    firebase.setDayOfMonkMode(1);
+    firebase.setTotalPoints(0);
+    firebase.setMorningPenaltyChecked(false);
+    firebase.setHasEvaluatedWeekly(false);
+    firebase.setIsDailyCompletedToday(false);
+    firebase.setHabits(cleanHabits);
+    firebase.setWeeklyHabits(cleanWeekly);
+    firebase.setHistory(resetState.history);
+    firebase.setPenaltyJournal([]);
+    firebase.setDailyLogs([]);
+
+    firebase.syncDB(resetState);
+    setShowStopConfirm(false);
+  };
+
   const stopMonkMode = () => {
-    if (window.confirm('¿Estás SEGURO de que quieres abandonar el Modo Monje? Todo tu progreso, puntos y días volverán a CERO. Esta acción es irreversible.')) {
-      const todayStr = new Date().toLocaleDateString('es-ES');
-      const cleanHabits = firebase.habits.map(h => ({ ...h, completed: false, failed: false }));
-      const cleanWeekly = firebase.weeklyHabits.map(h => ({ ...h, completed: false }));
-      const resetState = {
-        isMonkModeActive: false,
-        dayOfMonkMode: 1,
-        totalPoints: 0,
-        morningPenaltyChecked: false,
-        hasEvaluatedWeekly: false,
-        isDailyCompletedToday: false,
-        habits: cleanHabits,
-        weeklyHabits: cleanWeekly,
-        history: [{ day: 0, points: 0 }],
-        penaltyJournal: [],
-        dailyLogs: [],
-        lastLockDate: todayStr
-      };
-
-      firebase.setIsMonkModeActive(false);
-      firebase.setDayOfMonkMode(1);
-      firebase.setTotalPoints(0);
-      firebase.setMorningPenaltyChecked(false);
-      firebase.setHasEvaluatedWeekly(false);
-      firebase.setIsDailyCompletedToday(false);
-      firebase.setHabits(cleanHabits);
-      firebase.setWeeklyHabits(cleanWeekly);
-      firebase.setHistory(resetState.history);
-      firebase.setPenaltyJournal([]);
-      firebase.setDailyLogs([]);
-
-      firebase.syncDB(resetState);
-    }
+    setShowStopConfirm(true);
   };
 
   // === Reflection timer countdown ===
@@ -110,13 +115,33 @@ export default function App() {
   };
 
   const triggerAlert = (habit) => {
-    addToast('Modo Monje: Es hora ⛩️', `Tu hábito: "${habit.name}" te espera. ¡No rompas la racha!`);
+    addToast('Modo Monje: Es hora', `Tu hábito: "${habit.name}" te espera. ¡No rompas la racha!`);
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      new Notification('Modo Monje: Es hora ⛩️', {
+      new Notification('Modo Monje: Es hora', {
         body: `Tu hábito: "${habit.name}" te espera. ¡No rompas la racha!`
       });
     }
   };
+
+  // === Auto End Day ===
+  useEffect(() => {
+    if (!firebase.isDataLoaded || !firebase.isMonkModeActive || !firebase.lastActiveDate) return;
+
+    const todayStr = new Date().toLocaleDateString('es-ES');
+    if (firebase.lastActiveDate !== todayStr) {
+      const pending = firebase.habits.filter(h => !h.completed && !h.failed);
+      if (pending.length > 0) {
+        setFailedHabits(pending);
+        setPenaltyType('endOfDay');
+        setShowPenaltyModal(true);
+      } else {
+        processEndDay([], '', 'endOfDay'); // Automatically process perfect day
+      }
+      
+      firebase.setLastActiveDate(todayStr);
+      firebase.syncDB({ lastActiveDate: todayStr });
+    }
+  }, [firebase.isDataLoaded, firebase.isMonkModeActive, firebase.lastActiveDate, firebase.habits]);
 
   // === Clock, Alerts + Morning penalty check ===
   useEffect(() => {
@@ -299,7 +324,7 @@ export default function App() {
       setPenaltyType('endOfDay');
       setShowPenaltyModal(true);
     } else {
-      if (window.confirm('¡Día perfecto! ¿Terminar el día?')) processEndDay([], '', 'endOfDay');
+      processEndDay([], '', 'endOfDay');
     }
   };
 
@@ -337,28 +362,32 @@ export default function App() {
     firebase.setTotalPoints(newTotal);
     firebase.setHasEvaluatedWeekly(true);
     firebase.syncDB({ totalPoints: newTotal, hasEvaluatedWeekly: true });
-    alert(firebase.useOfflineMode
+    addToast('Evaluación Semanal', firebase.useOfflineMode
       ? `Evaluación completada localmente. Ganaste +${earnedPoints} puntos.`
       : `Evaluación en la nube completada. Ganaste +${earnedPoints} puntos.`);
   };
 
+  const confirmBuyReward = () => {
+    if (!rewardToBuy) return;
+    const newTotal = firebase.totalPoints - rewardToBuy.cost;
+    const newPurchase = {
+      id: Date.now(),
+      name: rewardToBuy.name,
+      cost: rewardToBuy.cost,
+      icon: rewardToBuy.icon,
+      date: new Date().toLocaleDateString('es-ES') + ' ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    };
+    const newHistory = [newPurchase, ...firebase.purchaseHistory];
+
+    firebase.setTotalPoints(newTotal);
+    firebase.setPurchaseHistory(newHistory);
+    firebase.syncDB({ totalPoints: newTotal, purchaseHistory: newHistory });
+    setRewardToBuy(null);
+  };
+
   const buyReward = (reward) => {
     if (firebase.totalPoints >= reward.cost) {
-      if (window.confirm(`¿Quieres comprar "${reward.name}" por ${reward.cost} puntos?`)) {
-        const newTotal = firebase.totalPoints - reward.cost;
-        const newPurchase = {
-          id: Date.now(),
-          name: reward.name,
-          cost: reward.cost,
-          icon: reward.icon,
-          date: new Date().toLocaleDateString('es-ES') + ' ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-        };
-        const newHistory = [newPurchase, ...firebase.purchaseHistory];
-
-        firebase.setTotalPoints(newTotal);
-        firebase.setPurchaseHistory(newHistory);
-        firebase.syncDB({ totalPoints: newTotal, purchaseHistory: newHistory });
-      }
+      setRewardToBuy(reward);
     }
   };
 
@@ -378,7 +407,7 @@ export default function App() {
     return (
       <div className="app-container">
         <div className="app-shell" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '32px', textAlign: 'center' }}>
-          <div style={{ fontSize: '64px', marginBottom: '24px' }}>⛩️</div>
+          <Flame size={64} className="icon-blue" style={{ marginBottom: '24px' }} />
           <h1 style={{ fontSize: '28px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '12px' }}>Modo Monje</h1>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '40px', fontSize: '16px', lineHeight: '1.5' }}>
             Un desafío estricto de 40 días para transformar tu vida mediante disciplina implacable, construcción de hábitos y cero distracciones.
@@ -431,6 +460,7 @@ export default function App() {
               onEditHabit={(h) => setEditingHabit({ habit: h, type: 'daily' })}
               onDeleteHabit={(id) => deleteHabit(id, 'daily')}
               onEndDay={initiateEndDay}
+              onShowToast={addToast}
             />
           )}
           {activeTab === 'weekly' && (
@@ -451,6 +481,7 @@ export default function App() {
               onSaveDaily={saveDailyJournal}
               dailyLogs={firebase.dailyLogs}
               penaltyJournal={firebase.penaltyJournal}
+              onShowToast={addToast}
               dayOfMonkMode={firebase.dayOfMonkMode}
             />
           )}
@@ -508,6 +539,22 @@ export default function App() {
             message="¿Estás seguro de que quieres borrar este hábito? Esta acción no se puede deshacer."
             onConfirm={confirmDeleteHabit}
             onCancel={() => setHabitToDelete(null)}
+          />
+        )}
+        {showStopConfirm && (
+          <ConfirmModal
+            title="Abandonar Modo Monje"
+            message="¿Estás SEGURO de que quieres abandonar el Modo Monje? Todo tu progreso, puntos y días volverán a CERO. Esta acción es irreversible."
+            onConfirm={confirmStopMonkMode}
+            onCancel={() => setShowStopConfirm(false)}
+          />
+        )}
+        {rewardToBuy && (
+          <ConfirmModal
+            title="Comprar Recompensa"
+            message={`¿Quieres comprar "${rewardToBuy.name}" por ${rewardToBuy.cost} puntos?`}
+            onConfirm={confirmBuyReward}
+            onCancel={() => setRewardToBuy(null)}
           />
         )}
 

@@ -31,6 +31,7 @@ export function useFirebaseSync() {
   const [dailyLogs, setDailyLogs] = useState([]);
   const [purchaseHistory, setPurchaseHistory] = useState([]);
   const [isMonkModeActive, setIsMonkModeActive] = useState(false);
+  const [lastActiveDate, setLastActiveDate] = useState('');
 
   // Reflection lock state
   const [showReflectionLock, setShowReflectionLock] = useState(false);
@@ -81,6 +82,7 @@ export function useFirebaseSync() {
         setMorningPenaltyChecked(data.morningPenaltyChecked || false);
         setHasEvaluatedWeekly(data.hasEvaluatedWeekly || false);
         setIsDailyCompletedToday(data.isDailyCompletedToday || false);
+        setLastActiveDate(data.lastActiveDate || '');
 
         if (data.habits) setHabits(data.habits);
         if (data.weeklyHabits) setWeeklyHabits(data.weeklyHabits);
@@ -115,7 +117,8 @@ export function useFirebaseSync() {
           penaltyJournal: [],
           dailyLogs: [],
           purchaseHistory: [],
-          lastLockDate: ''
+          lastLockDate: '',
+          lastActiveDate: todayStr
         };
         syncDB(initialState);
 
@@ -142,6 +145,7 @@ export function useFirebaseSync() {
     setUseOfflineMode(true);
     setHabits(defaultHabits);
     setWeeklyHabits(defaultWeeklyHabits);
+    setLastActiveDate(new Date().toLocaleDateString('es-ES'));
     setIsDataLoaded(true);
     setTodayReflection(lifeReflections[Math.floor(Math.random() * lifeReflections.length)]);
     setShowReflectionLock(true);
@@ -171,6 +175,7 @@ export function useFirebaseSync() {
     dailyLogs, setDailyLogs,
     purchaseHistory, setPurchaseHistory,
     isMonkModeActive, setIsMonkModeActive,
+    lastActiveDate, setLastActiveDate,
 
     // Reflection lock
     showReflectionLock, setShowReflectionLock,
