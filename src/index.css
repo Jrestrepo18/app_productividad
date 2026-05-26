@@ -686,40 +686,43 @@ body {
   overflow: hidden;
 }
 
-.habit-actions-bg {
+.habit-actions-left {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding-left: 24px;
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, transparent 100%);
+  color: var(--accent-emerald);
+  z-index: 1;
+}
+
+.habit-actions-right {
   position: absolute;
   inset: 0;
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding-right: 20px;
-  gap: 16px;
-  background: linear-gradient(90deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.2) 100%);
-  border-radius: var(--radius-2xl);
+  padding-right: 24px;
+  background: linear-gradient(270deg, rgba(239, 68, 68, 0.2) 0%, transparent 100%);
+  color: var(--accent-red);
   z-index: 1;
 }
 
-.habit-actions-bg button {
+.habit-edit-btn-static {
   background: none;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-dim);
+  padding: 0 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s, transform 0.2s;
-  padding: 8px;
+  transition: color 0.2s;
 }
 
-.habit-actions-bg button:hover {
-  transform: scale(1.1);
-}
-
-.habit-actions-bg .action-delete:hover {
-  color: var(--accent-red);
-}
-
-.habit-actions-bg .action-edit:hover {
+.habit-edit-btn-static:hover {
   color: var(--accent-blue);
 }
 

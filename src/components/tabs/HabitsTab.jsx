@@ -27,7 +27,7 @@ export default function HabitsTab({
     if (startX == null) return;
     
     const diff = e.touches[0].clientX - startX;
-    if (diff > 0 && diff < window.innerWidth * 0.8) {
+    if (Math.abs(diff) < window.innerWidth * 0.8) {
       setSwipeState(prev => ({ ...prev, [id]: { ...prev[id], offset: diff } }));
     }
   };
@@ -35,7 +35,10 @@ export default function HabitsTab({
   const handleTouchEnd = (e, id, isDone, isFailed) => {
     if (isDone || isFailed) return;
     const offset = swipeState[id]?.offset || 0;
-    if (offset > window.innerWidth * 0.4) {
+    const threshold = window.innerWidth * 0.3;
+
+    if (offset > threshold) {
+      // Swipe Derecha -> Completar
       const isToday = selectedDate.getDate() === currentDate.getDate() && selectedDate.getMonth() === currentDate.getMonth();
       const isPast = selectedDate < new Date(currentDate.setHours(0,0,0,0));
       if (isToday) {
@@ -45,6 +48,9 @@ export default function HabitsTab({
       } else {
         onShowToast('Acción no permitida', 'Solo puedes completar hábitos del día actual.');
       }
+    } else if (offset < -threshold) {
+      // Swipe Izquierda -> Eliminar
+      onDeleteHabit(id);
     }
     setSwipeState(prev => ({ ...prev, [id]: { startX: null, offset: 0 } }));
   };
@@ -70,21 +76,14 @@ export default function HabitsTab({
           const isToday = selectedDate.toDateString() === currentDate.toDateString();
           return (
             <div key={habit.id} className="habit-swipe-container">
-              <div className="habit-actions-bg">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onEditHabit(habit); }}
-                  className="action-edit"
-                  title="Editar hábito"
-                >
-                  <Edit2 size={24} />
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onDeleteHabit(habit.id); }}
-                  className="action-delete"
-                  title="Borrar hábito"
-                >
-                  <Trash2 size={24} />
-                </button>
+              {/* Fondo izquierdo (Swipe derecha) -> Listo */}
+              <div className="habit-actions-left" style={{ opacity: offset > 0 ? 1 : 0, transition: 'opacity 0.2s' }}>
+                <CheckCircle2 size={24} />
+              </div>
+
+              {/* Fondo derecho (Swipe izquierda) -> Eliminar */}
+              <div className="habit-actions-right" style={{ opacity: offset < 0 ? 1 : 0, transition: 'opacity 0.2s' }}>
+                <Trash2 size={24} />
               </div>
 
               <div
@@ -123,6 +122,15 @@ export default function HabitsTab({
                       </span>
                     </div>
                   </div>
+                </button>
+
+                {/* Botón de editar visible estáticamente */}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onEditHabit(habit); }}
+                  className="habit-edit-btn-static"
+                  title="Editar hábito"
+                >
+                  <Edit2 size={18} />
                 </button>
               </div>
             </div>
