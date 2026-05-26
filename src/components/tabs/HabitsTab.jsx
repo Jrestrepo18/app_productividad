@@ -69,62 +69,63 @@ export default function HabitsTab({
           const isSwiping = offset > 0;
           const isToday = selectedDate.toDateString() === currentDate.toDateString();
           return (
-            <div
-              key={habit.id}
-              onTouchStart={(e) => handleTouchStart(e, habit.id)}
-              onTouchMove={(e) => handleTouchMove(e, habit.id, habit.completed, habit.failed)}
-              onTouchEnd={(e) => handleTouchEnd(e, habit.id, habit.completed, habit.failed)}
-              className={`habit-card ${
-                habit.failed ? 'habit-failed' : habit.completed ? 'habit-completed' : 'habit-pending'
-              }`}
-              style={{
-                transform: `translateX(${offset}px)`,
-                transition: isSwiping ? 'none' : 'transform 0.3s ease'
-              }}
-            >
-            <button 
-              className="habit-toggle-area"
-              onClick={() => {
-                if (isToday) onToggleHabit(habit.id);
-                else onShowToast('Acción no permitida', 'Solo puedes completar hábitos del día actual.');
-              }}
-              disabled={habit.failed}
-            >
-              <div className={`habit-check ${habit.failed ? 'check-failed' : habit.completed ? 'check-done' : 'check-pending'}`}>
-                {habit.failed ? <X size={26} /> : habit.completed ? <CheckCircle2 size={26} strokeWidth={2} /> : <Circle size={26} strokeWidth={2} />}
+            <div key={habit.id} className="habit-swipe-container">
+              <div className="habit-actions-bg">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onEditHabit(habit); }}
+                  className="action-edit"
+                  title="Editar hábito"
+                >
+                  <Edit2 size={24} />
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onDeleteHabit(habit.id); }}
+                  className="action-delete"
+                  title="Borrar hábito"
+                >
+                  <Trash2 size={24} />
+                </button>
               </div>
 
-              <div className="habit-info">
-                <p className={`habit-name ${habit.failed ? 'name-failed' : habit.completed ? 'name-completed' : ''}`}>
-                  {habit.name}
-                </p>
-                <div className="habit-meta">
-                  <span className="habit-time"><Clock size={12} /> {habit.time}</span>
-                  <span className="habit-separator">•</span>
-                  <span className={`habit-points ${habit.failed ? 'points-failed' : ''}`}>
-                    {habit.failed ? 'Fallado' : `+${habit.points} pts`}
-                  </span>
-                </div>
+              <div
+                onTouchStart={(e) => handleTouchStart(e, habit.id)}
+                onTouchMove={(e) => handleTouchMove(e, habit.id, habit.completed, habit.failed)}
+                onTouchEnd={(e) => handleTouchEnd(e, habit.id, habit.completed, habit.failed)}
+                className={`habit-card ${
+                  habit.failed ? 'habit-failed' : habit.completed ? 'habit-completed' : 'habit-pending'
+                }`}
+                style={{
+                  transform: `translateX(${offset}px)`,
+                  transition: isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                }}
+              >
+                <button 
+                  className="habit-toggle-area"
+                  onClick={() => {
+                    if (isToday) onToggleHabit(habit.id);
+                    else onShowToast('Acción no permitida', 'Solo puedes completar hábitos del día actual.');
+                  }}
+                  disabled={habit.failed}
+                >
+                  <div className={`habit-check ${habit.failed ? 'check-failed' : habit.completed ? 'check-done' : 'check-pending'}`}>
+                    {habit.failed ? <X size={26} /> : habit.completed ? <CheckCircle2 size={26} strokeWidth={2} /> : <Circle size={26} strokeWidth={2} />}
+                  </div>
+
+                  <div className="habit-info">
+                    <p className={`habit-name ${habit.failed ? 'name-failed' : habit.completed ? 'name-completed' : ''}`}>
+                      {habit.name}
+                    </p>
+                    <div className="habit-meta">
+                      <span className="habit-time"><Clock size={12} /> {habit.time}</span>
+                      <span className="habit-separator">•</span>
+                      <span className={`habit-points ${habit.failed ? 'points-failed' : ''}`}>
+                        {habit.failed ? 'Fallado' : `+${habit.points} pts`}
+                      </span>
+                    </div>
+                  </div>
+                </button>
               </div>
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <button 
-                onClick={(e) => { e.stopPropagation(); onEditHabit(habit); }}
-                className="habit-edit-btn"
-                title="Editar hábito"
-                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '8px' }}
-              >
-                <Edit2 size={18} />
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); onDeleteHabit(habit.id); }}
-                className="habit-delete-btn"
-                title="Borrar hábito"
-              >
-                <Trash2 size={18} />
-              </button>
             </div>
-          </div>
           );
         })}
       </div>

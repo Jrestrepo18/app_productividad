@@ -129,20 +129,38 @@ export function AddHabitModal({ onCreateHabit, onClose }) {
     if (!name.trim()) return;
     setIsLoading(true);
 
-    let assignedPoints = type === 'weekly' ? 80 : 20;
+    let assignedPoints = type === 'weekly' ? 60 : 10;
     let assignedDifficulty = 'Medio';
 
     if (GEMINI_API_KEY) {
       try {
         const promptText = `
-          Eres un juez implacable de desarrollo personal. Evalúa la dificultad real y el esfuerzo físico/mental requerido para este hábito: "${name}". Tipo de hábito: ${type}.
-          Debes ser muy analítico: "Leer 1 página" es ridículamente Fácil (10 pts). "Leer 50 páginas" es Difícil (40 pts). "Correr 10km" es Muy Difícil.
-          Responde SOLO con un JSON válido exactamente con esta estructura: {"dificultad": "Facil", "puntos": 10} 
-          Opciones estrictas de dificultad: "Facil", "Medio", "Dificil", "Muy Dificil".
-          Rango de puntos si es "weekly" (semanal): entre 50 y 200.
-          Rango de puntos si es "daily" (diario): entre 10 y 40.
-          No agregues texto extra, solo el JSON puro.
-        `;
+Eres un evaluador ESTRICTO y REALISTA de hábitos de productividad personal. Tu trabajo es asignar una dificultad y puntos JUSTOS al hábito que te den.
+
+HÁBITO A EVALUAR: "${name}"
+TIPO: ${type === 'weekly' ? 'Semanal (se evalúa 1 vez por semana)' : 'Diario (se hace cada día)'}
+
+REGLAS DE EVALUACIÓN PARA HÁBITOS DIARIOS (rango: 5 a 20 puntos):
+- 5 pts = Trivial, sin esfuerzo real. Ej: "Tomar agua", "Hacer la cama", "Lavarse los dientes"
+- 8 pts = Fácil, requiere mínima voluntad. Ej: "Leer 5 páginas", "Caminar 10 minutos", "Meditar 5 min"
+- 10 pts = Medio-bajo, requiere constancia. Ej: "Estudiar 30 min", "No comer azúcar", "Leer 15 páginas"
+- 12 pts = Medio, esfuerzo moderado. Ej: "Meditar 20 min", "Ejercicio 30 min", "Estudiar 1 hora"
+- 15 pts = Difícil, requiere gran disciplina. Ej: "Gym 1 hora", "No redes sociales", "Despertar a las 5am"
+- 18 pts = Muy difícil, sacrificio real. Ej: "Trabajar 4+ horas en proyecto", "Correr 5km", "Ayuno intermitente"
+- 20 pts = Extremo, pocos lo logran diario. Ej: "Correr 10km", "No usar teléfono todo el día", "Estudiar 4+ horas"
+
+REGLAS PARA HÁBITOS SEMANALES (rango: 30 a 150 puntos):
+- 30-50 pts = Fácil semanal
+- 60-80 pts = Medio semanal
+- 90-120 pts = Difícil semanal
+- 130-150 pts = Extremo semanal
+
+Opciones de dificultad: "Facil", "Medio", "Dificil", "Muy Dificil"
+
+IMPORTANTE: No infles los puntos. Sé justo. "Orar 5 minutos" NO vale 20 puntos. "Ir al gym" SÍ vale 15.
+
+Responde SOLO con JSON puro: {"dificultad": "...", "puntos": N}
+`;
         const response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`,
           {
@@ -161,7 +179,13 @@ export function AddHabitModal({ onCreateHabit, onClose }) {
             const cleanedText = textResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
             const parsed = JSON.parse(cleanedText);
             assignedDifficulty = parsed.dificultad || 'Medio';
-            assignedPoints = parsed.puntos || (type === 'weekly' ? 100 : 20);
+            const rawPoints = parsed.puntos || (type === 'weekly' ? 60 : 10);
+            // Clamp points to valid ranges
+            if (type === 'weekly') {
+              assignedPoints = Math.max(30, Math.min(150, rawPoints));
+            } else {
+              assignedPoints = Math.max(5, Math.min(20, rawPoints));
+            }
           } catch (parseError) {
             console.error('Error parseando JSON de IA:', parseError, textResponse);
           }
@@ -170,13 +194,19 @@ export function AddHabitModal({ onCreateHabit, onClose }) {
         console.error('Error AI:', error);
       }
     } else {
-      const rand = Math.random();
+      // Fallback sin IA: asignar por nombre básico
+      const nameLower = name.trim().toLowerCase();
       if (type === 'weekly') {
-        assignedPoints = rand > 0.5 ? 100 : 150;
-        assignedDifficulty = rand > 0.5 ? 'Dificil' : 'Muy Dificil';
+        assignedPoints = 60;
+        assignedDifficulty = 'Medio';
+      } else if (nameLower.includes('agua') || nameLower.includes('cama') || nameLower.includes('dientes')) {
+        assignedPoints = 5; assignedDifficulty = 'Facil';
+      } else if (nameLower.includes('leer') || nameLower.includes('caminar') || nameLower.includes('meditar')) {
+        assignedPoints = 8; assignedDifficulty = 'Facil';
+      } else if (nameLower.includes('gym') || nameLower.includes('entrenar') || nameLower.includes('correr')) {
+        assignedPoints = 15; assignedDifficulty = 'Dificil';
       } else {
-        assignedPoints = rand > 0.5 ? 20 : 30;
-        assignedDifficulty = rand > 0.5 ? 'Medio' : 'Dificil';
+        assignedPoints = 10; assignedDifficulty = 'Medio';
       }
     }
 

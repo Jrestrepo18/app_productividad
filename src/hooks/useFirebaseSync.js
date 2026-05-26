@@ -111,8 +111,8 @@ export function useFirebaseSync() {
           morningPenaltyChecked: false,
           hasEvaluatedWeekly: false,
           isDailyCompletedToday: false,
-          habits: defaultHabits,
-          weeklyHabits: defaultWeeklyHabits,
+          habits: [],
+          weeklyHabits: [],
           history: [{ day: 0, points: 0 }],
           penaltyJournal: [],
           dailyLogs: [],
@@ -143,8 +143,8 @@ export function useFirebaseSync() {
     setDbError(null);
     setAuthError(null);
     setUseOfflineMode(true);
-    setHabits(defaultHabits);
-    setWeeklyHabits(defaultWeeklyHabits);
+    setHabits([]);
+    setWeeklyHabits([]);
     setLastActiveDate(new Date().toLocaleDateString('es-ES'));
     setIsDataLoaded(true);
     setTodayReflection(lifeReflections[Math.floor(Math.random() * lifeReflections.length)]);

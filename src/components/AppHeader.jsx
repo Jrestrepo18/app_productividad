@@ -1,10 +1,17 @@
-import React, { useRef, useEffect } from 'react';
-import { Flame, Coins } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { Flame, Coins, Clock as ClockIcon } from 'lucide-react';
 
 /**
  * Header de la aplicación con el nombre, día actual, puntos y frase motivacional
  */
 export default function AppHeader({ dayOfMonkMode, totalPoints, dailyQuote, useOfflineMode, selectedDate, onSelectDate, activeTab }) {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const progressPercent = Math.min((dayOfMonkMode / 40) * 100, 100);
 
   // Calculate Day 1 of the Monk Mode challenge
@@ -38,6 +45,12 @@ export default function AppHeader({ dayOfMonkMode, totalPoints, dailyQuote, useO
             <Flame size={24} className="header-flame-icon" />
             Modo Monje
           </h1>
+          <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+            <ClockIcon size={14} />
+            <span style={{ fontSize: '13px', fontWeight: '600', fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+              {time.toLocaleTimeString('es-ES', { hour12: false })}
+            </span>
+          </div>
           <div style={{ marginTop: '12px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
              <span className="header-subtitle" style={{ margin: 0, fontWeight: 'bold' }}>Día {dayOfMonkMode} / 40</span>
              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{Math.round(progressPercent)}%</span>
